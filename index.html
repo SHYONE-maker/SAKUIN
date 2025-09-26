@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#090040" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Aplikasi Manajemen Keuangan Sederhana berbasis web. Catat pemasukan, pengeluaran, saldo, dan ekspor data ke CSV." />
+  <meta name="author" content="Manajemen Keuangan Sederhana" />
+  <title>SakuIn.net</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1170/1170678.png" />
+  <style>
+    body {
+      font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin: 24px;
+      background: #090040;
+      color: #f5f5f5;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 16px;
+      color: #FFC800;
+      text-align: center;
+    }
+    .card {
+      background: #42158D;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: #ddd;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 6px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #222;
+      color: #fff;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #B244FF;
+      box-shadow: 0 0 6px #B244FF;
+    }
+    button {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 0;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .btn-primary {
+      background: #FFC800;
+      color: #111;
+    }
+    .btn-primary:hover {
+      background: #B244FF;
+      color: #fff;
+    }
+    .btn-danger {
+      background: #dc2626;
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background: #991b1b;
+    }
+    .flex { display: flex; gap: 8px }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #333;
+      text-align: left;
+    }
+    th {
+      background: #B244FF;
+      color: #fff;
+    }
+    td { color: #f5f5f5 }
+    .text-right { text-align: right }
+    .totals {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .total-card {
+      background: #42158D;
+      padding: 12px;
+      border-radius: 8px;
+      min-width: 160px;
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+    .total-card div:last-child {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #FFC800;
+    }
+    .small { font-size: 0.85rem; color: #eee }
+    .actions button {
+      margin-right: 6px;
+      background: #42158D;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+    .actions button:hover {
+      background: #B244FF;
+      color: #fff;
+    }
+    @media (min-width: 700px) {
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 120px;
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>SakuIn</h1>
+
+  <div class="card">
+    <form id="entryForm">
+      <div class="form-grid">
+        <div>
+          <label for="date">Tanggal</label>
+          <input type="date" id="date" required />
+        </div>
+        <div>
+          <label for="desc">Keterangan</label>
+          <input type="text" id="desc" placeholder="Contoh: Gaji, Belanja, Listrik" required />
+        </div>
+        <div>
+          <label for="amount">Jumlah (Rp)</label>
+          <input type="number" id="amount" placeholder="0" required min="0" step="1" />
+        </div>
+      </div>
+
+      <label for="type">Tipe</label>
+      <select id="type">
+        <option value="income">Pemasukan</option>
+        <option value="expense">Pengeluaran</option>
+      </select>
+
+      <div style="margin-top:12px" class="flex">
+        <button type="submit" class="btn-primary">Tambah</button>
+        <button type="button" id="exportBtn" class="btn-primary">Export CSV</button>
+        <button type="button" id="clearBtn" class="btn-danger">Hapus Semua</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="totals">
+      <div class="total-card">
+        <div class="small">Total Pemasukan</div>
+        <div id="totalIncome">Rp 0</div>
+      </div>
+      <div class="total-card">
+        <div class="small">Total Pengeluaran</div>
+        <div id="totalExpense">Rp 0</div>
+      </div>
+      <div class="total-card">
+        <div class="small">Saldo (Pemasukan - Pengeluaran)</div>
+        <div id="balance">Rp 0</div>
+      </div>
+    </div>
+
+    <table id="table">
+      <thead>
+        <tr>
+          <th>Tanggal</th>
+          <th>Keterangan</th>
+          <th class="text-right">Jumlah (Rp)</th>
+          <th>Tipe</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js')
+    .then(() => console.log('Service Worker terdaftar'))
+    .catch(err => console.error('SW gagal:', err));
+}
+    const STORAGE_KEY = 'financeData_v1';
+    const form = document.getElementById('entryForm');
+    const dateEl = document.getElementById('date');
+    const descEl = document.getElementById('desc');
+    const amountEl = document.getElementById('amount');
+    const typeEl = document.getElementById('type');
+    const tbody = document.querySelector('#table tbody');
+    const totalIncomeEl = document.getElementById('totalIncome');
+    const totalExpenseEl = document.getElementById('totalExpense');
+    const balanceEl = document.getElementById('balance');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    let data = [];
+
+    function setDefaultDate(){
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      dateEl.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+    function loadData(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){ try{ data = JSON.parse(raw) }catch(e){ data = []; } }
+      else{ data = []; }
+    }
+
+    function render(){
+      tbody.innerHTML = '';
+      let totalIncome = 0, totalExpense = 0;
+      const sorted = [...data].sort((a,b)=> b.date.localeCompare(a.date));
+      sorted.forEach(item=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.date}</td>
+          <td>${escapeHtml(item.desc)}</td>
+          <td class="text-right">${formatRupiah(item.amount)}</td>
+          <td>${item.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}</td>
+          <td class="actions">
+            <button data-id="${item.id}" class="editBtn">Edit</button>
+            <button data-id="${item.id}" class="delBtn">Hapus</button>
+          </td>`;
+        tbody.appendChild(tr);
+        if(item.type === 'income') totalIncome += Number(item.amount);
+        else totalExpense += Number(item.amount);
+      });
+      totalIncomeEl.textContent = formatRupiah(totalIncome);
+      totalExpenseEl.textContent = formatRupiah(totalExpense);
+      balanceEl.textContent = formatRupiah(totalIncome - totalExpense);
+      document.querySelectorAll('.delBtn').forEach(b=> b.addEventListener('click', ()=>{
+        const id = b.getAttribute('data-id');
+        if(confirm('Hapus entri ini?')){
+          data = data.filter(x=> x.id !== id);
+          saveData(); render();
+        }
+      }));
+      document.querySelectorAll('.editBtn').forEach(b=> b.addEventListener('click', ()=>{
+        const id = b.getAttribute('data-id');
+        const item = data.find(x=> x.id === id);
+        if(!item) return;
+        dateEl.value = item.date;
+        descEl.value = item.desc;
+        amountEl.value = item.amount;
+        typeEl.value = item.type;
+        data = data.filter(x=> x.id !== id);
+        saveData(); render();
+      }));
+    }
+
+    form.addEventListener('submit', e=>{
+      e.preventDefault();
+      const date = dateEl.value;
+      const desc = descEl.value.trim();
+      const amount = Number(amountEl.value);
+      const type = typeEl.value;
+      if(!date || !desc || !amount){ alert('Isi semua kolom dengan benar.'); return; }
+      const entry = { id: generateId(), date, desc, amount, type };
+      data.push(entry);
+      saveData(); render();
+      descEl.value = ''; amountEl.value = ''; setDefaultDate();
+    });
+
+    exportBtn.addEventListener('click', ()=>{
+      if(data.length === 0){ alert('Tidak ada data untuk dieksport.'); return; }
+      const header = ['Tanggal','Keterangan','Jumlah','Tipe'];
+      const rows = data.map(r => [r.date, r.desc.replace(/"/g,'""'), r.amount, r.type]);
+      const csv = [header, ...rows].map(r => r.map(c => '"'+String(c)+'"').join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'keuangan.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    clearBtn.addEventListener('click', ()=>{
+      if(confirm('Yakin ingin menghapus semua data?')){ data = []; saveData(); render(); }
+    });
+
+    function generateId(){ return 'id_'+Date.now()+'_'+Math.floor(Math.random()*9999); }
+    function formatRupiah(n){ const x = Number(n)||0; return 'Rp ' + x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m])); }
+
+    setDefaultDate(); loadData(); render();
+  </script>
+</body>
+</html>
